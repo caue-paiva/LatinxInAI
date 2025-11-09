@@ -141,8 +141,6 @@ for i in range(1,N):
     v_hist[i] = v_k
     S_hist[i] = S_k
 
-
-
 t = np.arange(N)
 
 # if you started storing from i=1, seed the first row for nicer plots
