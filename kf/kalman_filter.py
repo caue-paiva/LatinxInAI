@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.typing import NDArray
+
 FloatArray = NDArray[np.floating]
 
 class KalmanFilter:
@@ -86,3 +87,4 @@ class KalmanFilter:
             S_hist[i] = S_k
         
         return  m_hist, P_hist, v_hist, S_hist
+
