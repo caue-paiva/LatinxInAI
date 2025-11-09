@@ -1,89 +1,82 @@
-import math, random
+import numpy as np
+import math
 import matplotlib.pyplot as plt
 
+# ----- Model -----
+N = 200
+u = 0.05            # constant drift per step
+Q = 1e-3            # process noise variance
+R = 1e-2            # measurement noise variance
 
+rng = np.random.default_rng(42)
 
-def sine_data(start:int, end:int, delta:int) ->list[float]:
-    """
-    Generates  sine function data from starting to ending integer in discrete delta steps  
-    """
-    result = []
+# ----- Simulate ground truth and measurements -----
+x_true = np.zeros(N)
+z = np.zeros(N)
+x_true[0] = 0.0
+z[0] = x_true[0] + rng.normal(0, math.sqrt(R))
+for k in range(1, N):
+    x_true[k] = x_true[k-1] + u + rng.normal(0, math.sqrt(Q))
+    z[k] = x_true[k] + rng.normal(0, math.sqrt(R))
 
-    for i in range(start,end+1,delta):
-        result.append(math.sin(i))
-    
-    return result
+# ----- Kalman filter (scalar) -----
+m = 0.0            # posterior mean at k=0
+P = 0.1            # posterior variance at k=0
 
+m_hist = np.zeros(N)
+P_hist = np.zeros(N)
 
-def measurement_data(start:int, end:int, delta:int) ->list[int]:
-    """
-    Generates data from starting to ending integer in discrete delta steps  
-    """
-    return [i for i in range(start,end+1,delta)]
+for k in range(N):
+    # predict
+    m_pred = m + u
+    P_pred = P + Q
 
-def A(x): #in the 1D form, the state transition matrix is just a function that adds 0.1 to the state (x axis) 
-    return x + 0.1
+    # update
+    v = z[k] - m_pred                 # innovation
+    S = P_pred + R                    # innovation variance (H=1)
+    K = P_pred / S                    # Kalman gain
 
-def H(x): #measurement 'matrix' = sine function
-    return math.sin(x)
+    m = m_pred + K * v
+    # Joseph form for numerical robustness
+    P = (1 - K) * P_pred * (1 - K) + K * R * K
 
-q = 0.0 #state transition noise
-r = 0.1 # measurement noise
+    m_hist[k] = m
+    P_hist[k] = P
 
+# ----- Plot -----
+t = np.arange(N)
+std = np.sqrt(P_hist)
+upper = m_hist + 2 * std
+lower = m_hist - 2 * std
 
-#data = measurement_data(0,100,1)
-
-x0 = 0
-x:float = 0
-y:float
-
-# Calculate perfect measurement (no noise)
-y_perfect = H(x)
-    
-# Calculate upper and lower bounds
-y_upper = H(x) + r
-y_lower = H(x) - r
-
-results:list = [(x, y_perfect, y_upper, y_lower)] # list of tuples (x, y_perfect, y_upper, y_lower)
-
-for _ in range(100):
-    
-    x = A(x) + q #get next state
-    
-    # Calculate perfect measurement (no noise)
-    y_perfect = H(x)
-    
-    # Calculate upper and lower bounds
-    y_upper = H(x) + r
-    y_lower = H(x) - r
-
-    results.append((x, y_perfect, y_upper, y_lower))
-
-# Plot the results
-x_values = [result[0] for result in results]
-y_perfect = [result[1] for result in results]
-y_upper = [result[2] for result in results]
-y_lower = [result[3] for result in results]
-
-plt.figure(figsize=(12, 7))
-
-# Plot the probability region (shaded area between y_upper and y_lower)
-plt.fill_between(x_values, y_lower, y_upper, alpha=0.3, color='lightblue', 
-                 label='Probability Region (±r)')
-
-# Plot the perfect measurement line
-plt.plot(x_values, y_perfect, 'b-', linewidth=2, label='Perfect Measurement (no noise)')
-
-# Plot the upper and lower bounds
-plt.plot(x_values, y_upper, 'r--', linewidth=1, alpha=0.7, label='Upper Bound (+r)')
-plt.plot(x_values, y_lower, 'g--', linewidth=1, alpha=0.7, label='Lower Bound (-r)')
-
-plt.xlabel('State (x)', fontsize=12)
-plt.ylabel('Measurement (y)', fontsize=12)
-plt.title('Kalman Filter 1D: Measurement with Probability Region', fontsize=14)
-plt.legend(loc='best')
-plt.grid(True, alpha=0.3)
+plt.figure(figsize=(10, 5))
+plt.plot(t, x_true, label="truth", linewidth=2)
+plt.scatter(t, z, s=12, alpha=0.5, label="measurements")
+plt.plot(t, m_hist, label="KF mean", linewidth=2)
+plt.fill_between(t, lower, upper, alpha=0.2, label="KF 95% band")
+plt.xlabel("time step")
+plt.ylabel("state")
+plt.title("1D Kalman filter on a random walk with drift")
+plt.legend()
+plt.grid(alpha=0.3)
 plt.tight_layout()
 plt.show()
 
 
+# prediction
+
+steps = 50
+
+m_k = m
+P_k = P
+
+m_k_hist = np.zeros(N)
+P_k_hist = np.zeros(N)
+
+for i in range(1,steps+1):
+    # predict
+    m_pred = m_k + u
+    P_pred = P_k + Q
+
+    m_k_hist[i] = m_pred
+    P_k_hist[i] = P_pred
