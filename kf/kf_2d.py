@@ -35,7 +35,7 @@ def plot_truth(x_truth_vec):
     plt.show()
 
 
-N = 200
+N = 400
 dt  = 0.1          # sampling period
 qc1 = 1.0          # spectral density in x-direction
 qc2 = 1.0          # spectral density in y-direction
