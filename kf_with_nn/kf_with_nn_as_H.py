@@ -113,6 +113,10 @@ P = 1.0
 m_hist[0] = m
 P_hist[0] = P
 
+J_hist = np.zeros(N, dtype=float)
+K_hist = np.zeros(N, dtype=float)
+
+
 for k in range(N):
     # Predict
     m_pred = m + u
@@ -130,6 +134,9 @@ for k in range(N):
     m = m_pred + K * v
     # Joseph scalar form
     P = (1.0 - K * J)**2 * P_pred + (K**2) * R_used
+
+    J_hist[k] = J
+    K_hist[k] = K
 
     # store
     m_hist[k] = m
@@ -191,6 +198,27 @@ rmse_meas = np.sqrt(np.mean((y_meas - y_true)**2))
 rmse_nn   = np.sqrt(np.mean((y_nn_only - y_true)**2))
 rmse_ekf  = np.sqrt(np.mean((y_ekf - y_true)**2))
 print(f"RMSE vs true: measured={rmse_meas:.4f}, NN-only={rmse_nn:.4f}, EKF={rmse_ekf:.4f}")
+
+
+# -----------------------------
+# Jacobian (J = dh/dx at m_pred) and Kalman gain K over time
+# -----------------------------
+fig, (axJ, axK) = plt.subplots(2, 1, figsize=(12, 6), sharex=True)
+
+axJ.plot(t, J_hist, lw=1.8, label="J = dh/dx")
+axJ.axhline(0.0, color="k", lw=0.8, alpha=0.5)
+axJ.set_ylabel("Jacobian J")
+axJ.grid(alpha=0.3)
+axJ.legend(loc="best")
+
+axK.plot(t, K_hist, lw=1.8, color="C3", label="Kalman gain K")
+axK.set_xlabel("time")
+axK.set_ylabel("gain")
+axK.grid(alpha=0.3)
+axK.legend(loc="best")
+
+fig.suptitle("Local sensor slope J and Kalman gain K", y=0.98)
+plt.tight_layout(); plt.show()
 
 
 t = np.arange(N)
