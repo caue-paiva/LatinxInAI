@@ -125,7 +125,7 @@ for k in range(N):
     S = H @ P_pred @ H.T + R_used     # scalar 1x1
     K = (P_pred @ H.T) / S            # M x 1
 
-    y_hat = float(H @ mu_pred)        # scalar
+    y_hat = (H @ mu_pred).item()        # scalar
     v = y_k - y_hat                   # innovation
 
     mu = mu_pred + (K.flatten() * v)
@@ -167,12 +167,27 @@ y_true = np.array([h_true(xx) for xx in x_true])
 plt.figure(figsize=(12, 6))
 plt.plot(t, y_true, lw=2, label="true y")
 plt.plot(t, y_meas, lw=1, alpha=0.45, label="measured y")
+
+# BLR mean + 95% band
 plt.plot(t, pred_mean_blr, lw=2, label="BLR batch mean")
+plt.fill_between(
+    t,
+    pred_mean_blr - 1.96 * np.sqrt(pred_var_blr),
+    pred_mean_blr + 1.96 * np.sqrt(pred_var_blr),
+    alpha=0.15,
+    label="BLR 95% band"
+)
+
+# KF prior mean + 95% band (prior)
 plt.plot(t, y_kf_mean, lw=2, label="KF online mean (weights)")
-plt.fill_between(t,
-                 y_kf_mean - 1.96 * np.sqrt(y_kf_var),
-                 y_kf_mean + 1.96 * np.sqrt(y_kf_var),
-                 alpha=0.2, label="KF 95% band")
+plt.fill_between(
+    t,
+    y_kf_mean - 1.96 * np.sqrt(y_kf_var),
+    y_kf_mean + 1.96 * np.sqrt(y_kf_var),
+    alpha=0.2,
+    label="KF 95% band"
+)
+
 plt.xlabel("time"); plt.ylabel("y")
 plt.title("KF over regression weights vs BLR baseline")
 plt.grid(alpha=0.3); plt.legend()
@@ -199,3 +214,9 @@ plt.title("Trace of weight covariance P over time")
 plt.xlabel("time"); plt.ylabel("trace(P)")
 plt.grid(alpha=0.3)
 plt.tight_layout(); plt.show()
+
+bw_blr_full      = 2 * 1.96 * np.sqrt(pred_var_blr)
+bw_kf_prior_full = 2 * 1.96 * np.sqrt(y_kf_var)
+
+print(f"Avg 95% width (BLR):       {bw_blr_full.mean():.4f}")
+print(f"Avg 95% width (KF prior):  {bw_kf_prior_full.mean():.4f}")
