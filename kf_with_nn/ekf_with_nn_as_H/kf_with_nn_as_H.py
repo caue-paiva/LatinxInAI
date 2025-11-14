@@ -15,7 +15,7 @@ Q = 1e-1           # process noise variance
 R = (0.08)**2      # measurement noise variance
 
 
-# true nonlinear sensor (unknown to the filter; used to generate data)
+# true nonlinear sensor (unknown to the filter used to generate data)
 def h_true(x):
     return np.tanh(0.7 * x) + 0.25 * np.sin(1.6 * x)
 
@@ -89,7 +89,7 @@ R_used = float(R)  # keep the true R for clarity; swap to R_est to be data drive
 # 3) EKF with NN observation (scalar)
 # -----------------------------
 def h_theta_and_jacobian(x_scalar: float):
-    """Return y = h_theta(x) and J = dh/dx at x using autograd."""
+    """Return y = h_theta(x) and J = dy/dx at x using autograd."""
     xt = torch.tensor([[x_scalar]], dtype=torch.float32, requires_grad=True)
     yt = net(xt)          # shape (1,1)
     y_val = yt.item()
@@ -119,7 +119,7 @@ K_hist = np.zeros(N, dtype=float)
 
 for k in range(N):
     # Predict
-    m_pred = m + u
+    m_pred = m + u #random walk
     P_pred = P + Q
 
     # Observation linearization at m_pred
@@ -132,7 +132,7 @@ for k in range(N):
     # Kalman gain and update
     K = (P_pred * J) / S
     m = m_pred + K * v
-    # Joseph scalar form
+    # Joseph scalar form for better numerical stability
     P = (1.0 - K * J)**2 * P_pred + (K**2) * R_used
 
     J_hist[k] = J
