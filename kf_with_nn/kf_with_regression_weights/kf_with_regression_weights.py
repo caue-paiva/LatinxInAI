@@ -15,16 +15,16 @@ u = 0.05         # state drift for x
 Qx = 1e-2        # process noise variance for x
 R = (0.08)**2    # measurement noise variance
 
-def h_true(x):
+def y_true(x):
     return np.tanh(0.7 * x) + 0.25 * np.sin(1.6 * x)
 
 x_true = np.zeros(N)
 y_meas = np.zeros(N)
 x_true[0] = 0.0
-y_meas[0] = h_true(x_true[0]) + rng.normal(0, math.sqrt(R))
+y_meas[0] = y_true(x_true[0]) + rng.normal(0, math.sqrt(R))
 for k in range(1, N):
     x_true[k] = x_true[k-1] + u + rng.normal(0, math.sqrt(Qx))
-    y_meas[k] = h_true(x_true[k]) + rng.normal(0, math.sqrt(R))
+    y_meas[k] = y_true(x_true[k]) + rng.normal(0, math.sqrt(R))
 
 # -----------------------------
 # 2) Train a tiny feature extractor ϕ(x)
@@ -137,7 +137,7 @@ for k in range(N):
     mu_hist[k] = mu
     P_tr_hist[k] = np.trace(P)
     y_kf_mean[k] = y_hat
-    y_kf_var[k]  = float(H @ P_pred @ H.T + R_used)
+    y_kf_var[k]  = (H @ P_pred @ H.T + R_used).item()
     nis_hist[k]  = float((v**2) / y_kf_var[k])
 
 # -----------------------------
@@ -162,7 +162,7 @@ pred_mean_blr = Phi_all @ post_mean
 # 5) Plots and metrics
 # -----------------------------
 t = np.arange(N)
-y_true = np.array([h_true(xx) for xx in x_true])
+y_true = np.array([y_true(xx) for xx in x_true])
 
 plt.figure(figsize=(12, 6))
 plt.plot(t, y_true, lw=2, label="true y")
