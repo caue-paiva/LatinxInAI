@@ -99,8 +99,8 @@ U = U.reshape(-1)
 #    h_k = B h_{k-1} + U u_k + w_k,  w_k ~ N(0, Q)
 #    y_k = C h_k + r_k,              r_k ~ N(0, R)
 # -----------------------------
-Q = 1e-4 * np.eye(H)   # small process noise
-R = R_true             # use the same noise used in y_meas
+Q = 1e-3 * np.eye(H)   # small process noise
+R = 0.001            # use the same noise used in y_meas
 
 # Init
 m = np.zeros(H)        # prior mean of hidden
