@@ -1,4 +1,3 @@
-# linear_rnn_kf_sin_to_cos.py
 import numpy as np
 import math
 import matplotlib.pyplot as plt
@@ -13,8 +12,8 @@ torch.manual_seed(0)
 
 # 1) Data: sin(x) -> cos(x) 
 N = 600
-x = np.linspace(0, 8 * math.pi, N)   # same grid
-freq_scale = 0.3               
+x = np.linspace(0, 8 * math.pi, N)
+freq_scale = 0.3 #reduce frequency of waves              
 
 u = np.sin(freq_scale * x)
 y_true = np.cos(freq_scale * x)
@@ -85,7 +84,7 @@ model.eval()
 # Get full sequence predictions and hidden states from the trained linear RNN
 with torch.no_grad():
     y_rnn_hat, h_hist = model(torch.from_numpy(u).float().unsqueeze(1))
-y_rnn_hat = y_rnn_hat.squeeze(1).numpy()  # (N,)
+y_rnn_hat = y_rnn_hat.squeeze(1).numpy()   # (N,)
 h_hist = h_hist.numpy()                    # (N, H)
 
 # Extract learned matrices for KF
@@ -99,8 +98,13 @@ U = U.reshape(-1)
 #    h_k = B h_{k-1} + U u_k + w_k,  w_k ~ N(0, Q)
 #    y_k = C h_k + r_k,              r_k ~ N(0, R)
 # -----------------------------
-Q = 1e-3 * np.eye(H)   # small process noise
-R = 0.001            # use the same noise used in y_meas
+Q = 1e-2 * np.eye(H)   # small process noise
+# From testing observations:
+# Q = 1e-2 -> very close to true Y, far from RNN result
+# Q = 1e-3 -> somewhat close to true Y
+# Q = 1e-4 -> far from true Y, close to RNN result
+
+R = R_true             # use the same noise used in y_meas
 
 # Init
 m = np.zeros(H)        # prior mean of hidden
@@ -116,7 +120,7 @@ S_filt     = np.zeros(N)        # C P C^T + R
 I = np.eye(H)
 
 for k in range(N):
-   # predict
+    # predict
     m_pred = (B @ m) + U * u[k]
     P_pred = B @ P @ B.T + Q
 
@@ -169,11 +173,3 @@ print(f"RMSE vs true: measured={rmse_meas:.4f}  RNN={rmse_rnn:.4f}  KF_prior={rm
 # NIS for KF (should average near 1 if Q,R well tuned and model is right)
 nis = (y_meas - y_kf_prior)**2 / S_prior
 print(f"NIS mean ~ 1 if well tuned: {nis.mean():.3f}")
-
-# Hidden covariance trace
-plt.figure(figsize=(12, 3.8))
-plt.plot(t, P_tr_hist, lw=1.5)
-plt.title("Trace of hidden-state covariance P over time")
-plt.xlabel("time step"); plt.ylabel("trace(P)")
-plt.grid(alpha=0.3)
-plt.tight_layout(); plt.show()
